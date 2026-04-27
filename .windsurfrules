@@ -1,0 +1,103 @@
+# Component Structure and Naming
+
+- Place components in `src/components/[ComponentName]/[ComponentName].tsx`
+- Place pages in `src/pages/[PageName]/[PageName]Page.tsx`
+- Place forms in `src/pages/[PageName]/[PageName]Form.tsx` or `src/components/forms/[ComponentName]/[ComponentName].tsx`
+- Use PascalCase for component files and folders
+- Default export for components, named exports for utilities
+- Colocate component-specific styles as `[ComponentName].scss` in same directory
+
+# Component Implementation
+
+- Use functional components only, never class components
+- Import React: `import React from 'react';`
+- Import Hookstate hooks at top: `import { useState } from "@hookstate/core";`
+- Use Hookstate plugins: `Validation`, `Initial`, `Touched` for forms
+- Attach plugins after state creation: `formState.attach(Validation)`
+- Call hooks at component top level, never conditionally
+
+# State Management
+
+- Use Hookstate for global state: `createState<T>()` for globals, `useState(globalState)` for consumption
+- Place global state modules in `src/state/[domain]/[domain]-state.ts`
+- Export `use[Domain]State()` hooks that wrap state access
+- Create service classes (e.g., `DashboardUserService`) to encapsulate state logic
+- Use `useState<T>()` for local component state when state doesn't need sharing
+- Never mutate state directly; always use `.set()` or `.merge()`
+- Check if state modified via `Initial(formState.field).modified()`
+
+# Form Handling
+
+- Create form state with Hookstate: `const formState = useState<FormData>({ ... })`
+- Attach plugins: `Validation`, `Initial`, `Touched`
+- Define validators using `Validation(formState.field).validate(validator, errorMsg, 'error')`
+- Import validators from `src/utils/validation-utils.ts`: `validateEmail`, `validateRequiredString`, `validateStringLength`
+- Check validation: `failsHookstateValidation(formState.field)`, `Validation(formState).valid()`
+- Track dirty state: `isFormModified()` checks `Initial(formState.field).modified()`
+- Disable forms on success: check `props.successAction?.success`
+- Use controlled inputs: `value={formState.field.get()}`, `onChange={e => formState.field.set(e.target.value)}`
+- Prevent default on submit: `event.preventDefault()` in `onSubmit`
+- Use form components: `<Form>`, `<FormGroup>`, `<TextInput>`, `<Checkbox>`, `<SubmitActions>`, `<SuccessErrorMessage>`
+- Pass validation errors to FormGroup: `isError={failsHookstateValidation(formState.field)}`, `errorMessages={generateStringErrorMessages(formState.field)}`
+
+# API Calls
+
+- Always use generated OpenAPI client from `src/openapi/`
+- Import APIs: `import { DashboardUserControllerApi } from '../../openapi/apis/dashboard-user-controller-api'`
+- Import DTOs: `import { DashboardUserDto } from '../../openapi/models'`
+- Instantiate APIs with `globalOpenapiConfig`: `new DashboardUserControllerApi(globalOpenapiConfig.configuration, globalOpenapiConfig.basePath, globalOpenapiConfig.axios)`
+- Never use raw `fetch()` or create raw axios instances
+- Wrap API calls in service methods, not in components
+- Handle cancellation: use `makeCancellableDataRequest()` for requests
+- Handle errors: use `prepareDataCrudErrorResponse(error)` from `src/state/data-service/data-service-utils.ts`
+
+# TypeScript
+
+- Never use `any` type; use specific types or generics
+- Never use `@ts-ignore` without a comment explaining why
+- Prefer discriminated unions over enums where appropriate
+- Use `interface` for object shapes, `type` for unions/aliases
+- Import generated types from `src/openapi/models`
+- Define props interfaces: `interface [ComponentName]Props { ... }`
+- Use optional chaining: `props.data?.id` instead of `props.data && props.data.id`
+- Use nullish coalescing: `props.data?.id ?? ""` instead of ternaries where appropriate
+- Export types alongside components when reusable
+
+# Styling
+
+- Use SCSS modules colocated with components: `ComponentName.scss`
+- Import styles: `import './ComponentName.scss';`
+- Use USWDS components from `@trussworks/react-uswds`
+- Import USWDS styles in component: `@import "~uswds/dist/scss/..."`
+- Use existing USWDS utility classes where possible
+- Prefix custom classes with component/domain name to avoid collisions
+- Use Bootstrap Grid for layout (already imported globally)
+- Never use inline styles (`style={{ ... }}`)
+- Use semantic class names: `.dashboard-user-form`, `.tron-form`, not `.blue-button`
+
+# Testing
+
+- Place tests in `__tests__` directory adjacent to component
+- Name test files: `[ComponentName].test.tsx` or `[filename].test.ts`
+- Import from `@testing-library/react`: `render`, `fireEvent`, `screen`
+- Import from `@testing-library/jest-dom` for matchers
+- Use `describe()` blocks to group related tests
+- Use `beforeEach()` for setup, mock functions with `jest.fn()`
+- Use `data-testid` attributes for querying elements
+- Mock OpenAPI services in tests
+- Cover happy path, validation errors, submission success/failure
+
+# What NOT to Do
+
+- No inline styles (`style={{ ... }}`)
+- No business logic in JSX; extract to functions
+- No `fetch()` outside the generated API client
+- No class components
+- No direct state mutation
+- No conditional hook calls
+- No `any` type without strong justification
+- No `@ts-ignore` without explanatory comment
+- No raw axios instances; use `globalOpenapiConfig.axios`
+- No styles in JS; use SCSS files
+- No hardcoded API URLs; use `Config.API_BASE_URL`
+- No test files next to source files; use `__tests__/` directory
